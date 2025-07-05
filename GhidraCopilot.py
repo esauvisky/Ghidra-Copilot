@@ -4,6 +4,7 @@
 # @version 1.2
 # @toolbar wizard.png
 
+import json
 from ghidra.app.decompiler import DecompileOptions
 from ghidra.app.decompiler import DecompInterface
 from ghidra.util.task import ConsoleTaskMonitor

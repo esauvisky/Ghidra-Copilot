@@ -495,7 +495,7 @@ FIRST_ANSWER_FUNCTIONS = """{
     ]
 }"""
 
-def get_function_call_context_code(interface, current_code, functions_to_rename, max_lines=50000):
+def get_function_call_context_code(interface, current_code, functions_to_rename, max_lines=10000):
     flat_api = FlatProgramAPI(currentProgram)
 
     context_code = [current_code]
