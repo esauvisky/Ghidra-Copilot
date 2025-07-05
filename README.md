@@ -29,7 +29,7 @@ Here is a short video demonstrating the script in action:
 1.  **Add Script Directory to Ghidra**:
     - Open Ghidra and go to **Window -> Script Manager**.
     - Click the **"Script Directories"** icon (looks like a folder with a cog) in the Script Manager toolbar.
-    - Click the green **"+"** icon and add the `ghidra_scripts` directory from this cloned repository.
+    - Click the green **"+"** icon and add the root directory from this cloned repository.
     - Ghidra will now be able to find `GhidraCopilot.py`.
 
 1.  **Refresh Scripts**:
