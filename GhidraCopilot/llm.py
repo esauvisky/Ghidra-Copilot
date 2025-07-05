@@ -6,9 +6,6 @@ from GhidraCopilot.utils import send_https_request
 from __main__ import askChoice
 
 
-
-
-
 def send_prompt_to_llm(prompt_messages, schema=None):
     model = MODEL["name"]
     temperature = MODEL["temperature"]
@@ -24,15 +21,18 @@ def send_prompt_to_llm(prompt_messages, schema=None):
 
 def get_model():
     models = {
-        "gpt-4.1": {"max_tokens": 30 - 768, "temperature": 1},
-        "claude-sonnet-4-20250514": {"max_tokens": 20000, "temperature": 1},
-        "gemini-2.5-flash-lite-preview-06-17": {"max_tokens": 200000, "temperature": 1},
-    }
+        "gpt-4.1": {"max_tokens": 50000, "temperature": 0},
+        "claude-sonnet-4-20250514": {"max_tokens": 20000, "temperature": 0},
+        "gemini-2.5-flash-lite-preview-06-17": {"max_tokens": 200000, "temperature": 0, "thinking_budget": 0},
+        "gemini-2.0-flash-lite": {"max_tokens": 1000000, "temperature": 0},}
     model_names = list(models.keys())
     selected_model = askChoice("Model", "Please choose a language model to use", model_names, model_names[0])
-    return {'name': selected_model, 'max_tokens': models[selected_model]['max_tokens'], 'temperature': models[selected_model]['temperature']}
+    return {
+        'name': selected_model, 'max_tokens': models[selected_model]['max_tokens'], 'temperature': models[selected_model]['temperature']}
+
 
 MODEL = get_model()
+
 
 def get_api_key():
     vendor = "OPENAI"
@@ -54,6 +54,7 @@ def get_api_key():
                            "or create a file at {} with your key.").format(vendor, os.path.join(home, keyfile)))
             exit(1)
 
+
 def build_prompt(system_message, first_prompt, first_answer, code, items_to_rename, items_key):
     system_msg = {"role": "system", "content": system_message}
     first_prompt_msg = {"role": "user", "content": first_prompt}
@@ -63,24 +64,11 @@ def build_prompt(system_message, first_prompt, first_answer, code, items_to_rena
     return [system_msg, first_prompt_msg, first_answer_msg, prompt_msg]
 
 
-def build_combined_prompt(system_message, first_prompt, first_answer, code, items_map):
+def build_combined_prompt(system_message, first_prompt, first_answer, current_code, context_code, items_map):
     system_msg = {"role": "system", "content": system_message}
     first_prompt_msg = {"role": "user", "content": first_prompt}
     first_answer_msg = {"role": "assistant", "content": first_answer}
-
-    symbols_to_rename = {}
-    if items_map.get("ARGUMENTS"):
-        symbols_to_rename["arguments"] = items_map.get("ARGUMENTS")
-    if items_map.get("LOCAL VARIABLES"):
-        symbols_to_rename["local_variables"] = items_map.get("LOCAL VARIABLES")
-    if items_map.get("FUNCTIONS"):
-        symbols_to_rename["functions"] = items_map.get("FUNCTIONS")
-    if items_map.get("GLOBALS"):
-        symbols_to_rename["globals"] = items_map.get("GLOBALS")
-    if items_map.get("LABELS"):
-        symbols_to_rename["labels"] = items_map.get("LABELS")
-
-    prompt = "### CODE ###\n" + code + "\n### SYMBOLS TO RENAME ###\n" + json.dumps(symbols_to_rename, indent=2)
+    prompt = "### CODE\n#### MAIN\n" + current_code + "#### CONTEXT\n" + context_code + "\n\n\n" + "### SYMBOLS TO RENAME\n" + json.dumps(items_map, indent=2)
     prompt_msg = {"role": "user", "content": prompt}
     return [system_msg, first_prompt_msg, first_answer_msg, prompt_msg]
 
@@ -104,9 +92,9 @@ def anthropic_request(prompt, temperature, max_tokens, model):
         "Content-Type": "application/json",
         "x-api-key": get_api_key(),
         "anthropic-version": "2023-06-01",
-        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
-    }
-    data = {"model": model, "max_tokens": max_tokens, "temperature": temperature, "system": prompt[0]['content'], "messages": prompt[1:]}
+        "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",}
+    data = {
+        "model": model, "max_tokens": max_tokens, "temperature": temperature, "system": prompt[0]['content'], "messages": prompt[1:]}
     res = send_https_request(host, path, data, headers)
     if res is None or 'error' in res:
         logging.error("Anthropic request failed: {}".format(res))
@@ -120,9 +108,15 @@ def gemini_request(prompt, temperature, max_tokens, model, schema=None):
     headers = {"Content-Type": "application/json", "x-goog-api-key": get_api_key()}
 
     system_instruction = {"parts": [{"text": prompt[0]['content']}]} if prompt and prompt[0]['role'] == 'system' else None
-    contents = [{'role': 'model' if msg['role'] == 'assistant' else 'user', 'parts': [{'text': msg['content']}]} for msg in (prompt[1:] if system_instruction else prompt)]
+    contents = [{'role': 'model' if msg['role'] == 'assistant' else 'user', 'parts': [{'text': msg['content']}]}
+                for msg in (prompt[1:] if system_instruction else prompt)]
+    print("Gemini request contents: {}".format(json.dumps(contents, indent=4)))
 
-    data = {"contents": contents, "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens}}
+    data = {
+        "contents": contents, "generationConfig": {
+            "temperature": temperature,
+            "maxOutputTokens": max_tokens,
+        }}
     if system_instruction:
         data["systemInstruction"] = system_instruction
     if schema:
@@ -133,7 +127,11 @@ def gemini_request(prompt, temperature, max_tokens, model, schema=None):
     if res is None or 'error' in res or not res.get('candidates'):
         logging.error("Gemini request failed: {}".format(res))
         return None
+    print("Gemini response: {}".format(json.dumps(res, indent=4)))
 
+    if not res['candidates'] or not res['candidates'][0].get('content') or not res['candidates'][0]['content'].get('parts'):
+        logging.error("Gemini response is missing expected content structure: {}".format(res))
+        return None
     response_text = res['candidates'][0]['content']['parts'][0]['text']
     if schema:
         try:
