@@ -13,7 +13,7 @@ Ghidra Copilot is a Ghidra plugin that uses Large Language Models (LLMs) to sugg
 
 Here is a short video demonstrating the script in action:
 
-[![Ghidra Copilot Demo](ghidra_copilot.mp4)](ghidra_copilot.mp4)
+https://github.com/user-attachments/assets/01111b8d-8a50-4b08-b73a-80af2af194c3
 
 ## Installation
 
