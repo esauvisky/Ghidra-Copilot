@@ -55,13 +55,7 @@ def is_auto_generated(name):
         or re.match(r"local_r\d+(_\d+)?$", name)
         or re.match(r"local_[0-9a-fA-F]+$", name)
         or re.match(r"arg\d+$", name)
-        or name.startswith("DAT_")
-        or name.startswith("PTR_")
-        or name.startswith("str_")
-        or name.startswith("unk_")
-        or name.startswith("off_")
-        or name.startswith("func_")
-        or name.startswith("var_")
+        or re.match(r"_?(?:DAT|PTR|str|unk|off|func|var)_[0-9a-fA-F]+$", name)
     )
 
 
