@@ -52,11 +52,18 @@ def generate_argument_renames(code, args):
     prompt = build_prompt(SYSTEM_MESSAGE_ARGS, FIRST_PROMPT_ARGS, FIRST_ANSWER_ARGS, code, args, "ARGUMENTS")
     return send_prompt_to_llm(prompt, schema=SCHEMA_ARGS)
 
-def rename_arguments(decompiled, old_to_new):
+def rename_arguments(decompiled, old_to_new, requested_args=None):
     hfunction = decompiled.getHighFunction()
     lsm = hfunction.getLocalSymbolMap()
+    requested_set = set(requested_args) if requested_args is not None else None
+
     for item in old_to_new.get("argument_renames", []):
         old_name, new_name = item['old_name'], item['new_name']
+
+        if requested_set is not None and old_name not in requested_set:
+            logging.warning("LLM suggested renaming for unrequested argument '{}'. Skipping.".format(old_name))
+            continue
+
         symbol = next((s for s in lsm.getSymbols() if s.getName() == old_name and s.isParameter()), None)
         if not symbol:
             logging.warning("Couldn't find argument symbol {}".format(old_name))

@@ -528,10 +528,17 @@ def generate_function_renames(interface, current_code, functions_to_rename):
 def find_functions_to_rename(c_code):
     return list(set(re.findall(r'\b((?:thunk_)?FUN_[0-9a-fA-F]+)\b', c_code)))
 
-def rename_functions(old_to_new):
+def rename_functions(old_to_new, requested_funcs=None):
     flat_api = FlatProgramAPI(currentProgram)
+    requested_set = set(requested_funcs) if requested_funcs is not None else None
+
     for item in old_to_new.get("function_renames", []):
         old_name, new_name = item['old_name'], item['new_name']
+
+        if requested_set is not None and old_name not in requested_set:
+            logging.warning("LLM suggested renaming for unrequested function '{}'. Skipping.".format(old_name))
+            continue
+
         try:
             # Handle thunk_FUN_... and FUN_...
             addr_str = old_name.split('_')[-1]

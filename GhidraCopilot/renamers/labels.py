@@ -57,10 +57,17 @@ def generate_label_renames(code, labels):
 def find_labels_to_rename(c_code):
     return list(set(re.findall(r'^(LAB_[0-9a-fA-F]+):', c_code, re.MULTILINE)))
 
-def rename_labels(old_to_new):
+def rename_labels(old_to_new, requested_labels=None):
     flat_api = FlatProgramAPI(currentProgram)
+    requested_set = set(requested_labels) if requested_labels is not None else None
+
     for item in old_to_new.get("label_renames", []):
         old_name, new_name = item['old_name'], item['new_name']
+
+        if requested_set is not None and old_name not in requested_set:
+            logging.warning("LLM suggested renaming for unrequested label '{}'. Skipping.".format(old_name))
+            continue
+
         try:
             # Handle LAB_...
             addr_str = old_name.replace("LAB_", "0x")

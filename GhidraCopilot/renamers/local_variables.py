@@ -226,12 +226,18 @@ def split_local_variables(decompiled, local_vars_to_split):
             except Exception as e:
                 logging.error('Error splitting symbol {}: {}'.format(var_name, e))
 
-def rename_local_variables(decompiled, old_to_new):
+def rename_local_variables(decompiled, old_to_new, requested_vars=None):
     hfunction = decompiled.getHighFunction()
     lsm = hfunction.getLocalSymbolMap()
     name_counts = {}
+    requested_set = set(requested_vars) if requested_vars is not None else None
+
     for item in old_to_new.get("variable_renames", []):
         old_name, new_name = item['old_name'], item['new_name']
+
+        if requested_set is not None and old_name not in requested_set:
+            logging.warning("LLM suggested renaming for unrequested local variable '{}'. Skipping.".format(old_name))
+            continue
 
         if new_name in name_counts:
             name_counts[new_name] += 1
