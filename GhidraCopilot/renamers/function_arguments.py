@@ -71,7 +71,9 @@ def rename_arguments(decompiled, old_to_new, requested_args=None):
 
         logging.info('Renaming argument: {} -> {}'.format(old_name, new_name))
         try:
-            symbol.getSymbol().setName(new_name, SourceType.USER_DEFINED)
-            HighFunctionDBUtil.commitParamsToDatabase(hfunction, True, HighFunctionDBUtil.ReturnCommitOption.COMMIT, SourceType.USER_DEFINED)
+            # By passing None as the DataType, we avoid splitting the variable group.
+            HighFunctionDBUtil.updateDBVariable(symbol, new_name, None, SourceType.USER_DEFINED) # type: ignore
+            # symbol.getSymbol().setName(new_name, SourceType.USER_DEFINED)
+            # HighFunctionDBUtil.commitParamsToDatabase(hfunction, True, HighFunctionDBUtil.ReturnCommitOption.COMMIT, SourceType.USER_DEFINED)
         except Exception as e:
             logging.error('Error renaming argument {}: {}'.format(old_name, e))
