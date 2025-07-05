@@ -1,7 +1,7 @@
-# Ask GPT
+# Ghidra Copilot
 # @author Emi Bemol <emi@pokemod.dev>
 # @category machineLearning
-# @version 1.0
+# @version 1.2
 # @toolbar wizard.png
 
 from ghidra.app.decompiler import DecompileOptions

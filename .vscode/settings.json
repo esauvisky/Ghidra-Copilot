@@ -1,0 +1,14 @@
+{
+    // needed to make ghidra stubs work in this project (auto complete for vscode)
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.analysis.stubPath": "./.venv/lib/python3.11/site-packages/ghidra-stubs",
+    "python.autoComplete.extraPaths": [
+        "./.venv/lib/python3.11/site-packages/ghidra-stubs"
+    ],
+    "python.analysis.extraPaths": [
+        "./.venv/lib/python3.11/site-packages/ghidra-stubs"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none",
+    }
+}
