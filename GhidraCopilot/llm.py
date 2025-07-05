@@ -63,6 +63,27 @@ def build_prompt(system_message, first_prompt, first_answer, code, items_to_rena
     return [system_msg, first_prompt_msg, first_answer_msg, prompt_msg]
 
 
+def build_combined_prompt(system_message, first_prompt, first_answer, code, items_map):
+    system_msg = {"role": "system", "content": system_message}
+    first_prompt_msg = {"role": "user", "content": first_prompt}
+    first_answer_msg = {"role": "assistant", "content": first_answer}
+
+    symbols_to_rename = {}
+    if items_map.get("ARGUMENTS"):
+        symbols_to_rename["arguments"] = items_map.get("ARGUMENTS")
+    if items_map.get("LOCAL VARIABLES"):
+        symbols_to_rename["local_variables"] = items_map.get("LOCAL VARIABLES")
+    if items_map.get("FUNCTIONS"):
+        symbols_to_rename["functions"] = items_map.get("FUNCTIONS")
+    if items_map.get("GLOBALS"):
+        symbols_to_rename["globals"] = items_map.get("GLOBALS")
+    if items_map.get("LABELS"):
+        symbols_to_rename["labels"] = items_map.get("LABELS")
+
+    prompt = "### CODE ###\n" + code + "\n### SYMBOLS TO RENAME ###\n" + json.dumps(symbols_to_rename, indent=2)
+    prompt_msg = {"role": "user", "content": prompt}
+    return [system_msg, first_prompt_msg, first_answer_msg, prompt_msg]
+
 
 def openai_request(prompt, temperature, max_tokens, model):
     data = {"model": model, "messages": prompt, "max_tokens": max_tokens, "temperature": temperature}
