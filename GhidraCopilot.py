@@ -41,10 +41,10 @@ decompiled = interface.decompileFunction(func, 10, monitor)
 high_func_initial = decompiled.getHighFunction()
 lsm_initial = high_func_initial.getLocalSymbolMap()
 symbols_initial = lsm_initial.getSymbols()
-local_vars_to_split = list(set([s.getName() for s in symbols_initial if not s.isParameter() and is_auto_generated(s.getName())]))
+local_variables_to_split = list(set([s.getName() for s in symbols_initial if not s.isParameter() and is_auto_generated(s.getName())]))
 
-if local_vars_to_split:
-    split_local_variables(decompiled, local_vars_to_split)
+if local_variables_to_split:
+    split_local_variables(decompiled, local_variables_to_split)
 
     # Re-decompile to get the updated code and symbol map
     logging.info("Re-decompiling function to reflect split variables...")
@@ -55,21 +55,30 @@ code = decompiled.getDecompiledFunction().getC()
 high_func = decompiled.getHighFunction()
 lsm = high_func.getLocalSymbolMap()
 symbols = lsm.getSymbols()
+params = [lsm.getParamSymbol(i) for i in range(lsm.getNumParams())]
 
 # --- Identify all auto-generated symbols (using the new, split names) ---
-local_vars = list(set([s.getName() for s in symbols if not s.isParameter() and is_auto_generated(s.getName())]))
-arguments = list(set([s.getName() for s in symbols if s.isParameter() and is_auto_generated(s.getName())]))
+variables_found = list(set([s.getName() for s in symbols if not s.isParameter() and is_auto_generated(s.getName())]))
+arguments_found = list(set([s.getName() for s in params if s.isParameter() and is_auto_generated(s.getName())]))
 globals_found = find_globals_to_rename(code)
 functions_found = find_functions_to_rename(code)
 labels_found = find_labels_to_rename(code)
 
 # --- Ask user what to rename ---
 choices = []
-if local_vars: choices.append("Local Variables ({})".format(len(local_vars)))
-if arguments: choices.append("Arguments ({})".format(len(arguments)))
+if variables_found: choices.append("Local Variables ({})".format(len(variables_found)))
+if arguments_found: choices.append("Arguments ({})".format(len(arguments_found)))
 if globals_found: choices.append("Globals ({})".format(len(globals_found)))
 if functions_found: choices.append("Functions ({})".format(len(functions_found)))
 if labels_found: choices.append("Labels ({})".format(len(labels_found)))
+
+print("Found the following auto-generated symbols:" + json.dumps({
+    "variables_found": variables_found,
+    "arguments_found": arguments_found,
+    "globals_found": globals_found,
+    "functions_found": functions_found,
+    "labels_found": labels_found
+}, indent=2))
 
 if not choices:
     logging.info("No auto-generated symbols found to rename.")
@@ -83,10 +92,10 @@ if len(selected_choices) > 1:
 
     rename_payload = {}
     str_choices = str(selected_choices)
-    if "Local Variables" in str_choices and local_vars:
-        rename_payload["local_vars"] = local_vars
-    if "Arguments" in str_choices and arguments:
-        rename_payload["arguments"] = arguments
+    if "Local Variables" in str_choices and variables_found:
+        rename_payload["variables_found"] = variables_found
+    if "Arguments" in str_choices and arguments_found:
+        rename_payload["arguments_found"] = arguments_found
     if "Globals" in str_choices and globals_found:
         rename_payload["globals_found"] = globals_found
     if "Functions" in str_choices and functions_found:
@@ -98,9 +107,9 @@ if len(selected_choices) > 1:
     all_renames = generate_combined_renames(interface, func, code, **rename_payload)
     if all_renames:
         if "variable_renames" in all_renames:
-            rename_local_variables(decompiled, {"variable_renames": all_renames["variable_renames"]}, local_vars)
+            rename_local_variables(decompiled, {"variable_renames": all_renames["variable_renames"]}, variables_found)
         if "argument_renames" in all_renames:
-            rename_arguments(decompiled, {"argument_renames": all_renames["argument_renames"]}, arguments)
+            rename_arguments(decompiled, {"argument_renames": all_renames["argument_renames"]}, arguments_found)
         if "global_renames" in all_renames:
             rename_globals({"global_renames": all_renames["global_renames"]}, globals_found)
         if "function_renames" in all_renames:
@@ -111,14 +120,14 @@ else:
     # --- Process each selected type individually ---
     for choice in selected_choices:
         if choice.startswith("Local Variables"):
-            logging.info("Requesting renames for local variables: {}".format(local_vars))
-            renames = generate_local_variable_renames(code, local_vars)
+            logging.info("Requesting renames for local variables: {}".format(variables_found))
+            renames = generate_local_variable_renames(code, variables_found)
             if renames:
                 rename_local_variables(decompiled, renames)
 
         if choice.startswith("Arguments"):
-            logging.info("Requesting renames for arguments: {}".format(arguments))
-            renames = generate_argument_renames(code, arguments)
+            logging.info("Requesting renames for arguments: {}".format(arguments_found))
+            renames = generate_argument_renames(code, arguments_found)
             if renames:
                 rename_arguments(decompiled, renames)
 
