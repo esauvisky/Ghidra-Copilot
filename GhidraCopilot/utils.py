@@ -44,6 +44,7 @@ def lang_description(add_assembly_info=False):
 def is_auto_generated(name):
     # Heuristics for auto-generated names: ends with _\d+, iVar\d+, uVar\d+, pVar\d+, pppVar\d+, in_r\d+, extraOutTimeout\d+, local_r\d+(_\d+)? etc.
     # Also treat names like pDVar3, bVar1, bVar2, etc. as auto-generated.
+    # Also treat param_1, param_2, ... and _DAT_xxx as auto-generated.
     return (
         re.match(r".*_\d+$", name)
         or re.match(r"(?:[iuapbcdst]|ppp)Var\d+$", name)
@@ -55,7 +56,9 @@ def is_auto_generated(name):
         or re.match(r"local_r\d+(_\d+)?$", name)
         or re.match(r"local_[0-9a-fA-F]+$", name)
         or re.match(r"arg\d+$", name)
-        or re.match(r"_?(?:DAT|PTR|str|unk|off|func|var)_[0-9a-fA-F]+$", name)
+        or name.startswith("param_")
+        or re.match(r"_?DAT_[0-9a-fA-F]+$", name)  # allow _DAT_xxx as auto-generated
+        or re.match(r"_?(?:PTR|str|unk|off|func|var)_[0-9a-fA-F]+$", name)
     )
 
 
